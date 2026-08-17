@@ -13,9 +13,13 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  UPSTREAM_REPOSITORY: ksami/QRemeshify
+  UPSTREAM_NATIVE_VERSION: '1.1.0'
+
 jobs:
   release:
-    name: Create GitHub Release
+    name: Package Blender add-on and create release
     runs-on: ubuntu-latest
 
     steps:
@@ -24,6 +28,27 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          version="${version#V}"
+          if [[ -z "$version" ]]; then
+            echo 'Release version is empty.' >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $RELEASE_TAG"
+          echo "Version: $version"
 
       - name: Extract matching changelog section
         env:
@@ -37,12 +62,47 @@ jobs:
           echo '--- Release notes ---'
           cat release-notes.md
 
-      - name: Create GitHub Release
+      - name: Download upstream native libraries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .release/upstream
+
+          for platform in windows linux macos; do
+            asset="QRemeshify-${UPSTREAM_NATIVE_VERSION}-${platform}.zip"
+            echo "Downloading ${UPSTREAM_REPOSITORY} ${UPSTREAM_NATIVE_VERSION}: $asset"
+            gh release download "$UPSTREAM_NATIVE_VERSION" \
+              --repo "$UPSTREAM_REPOSITORY" \
+              --pattern "$asset" \
+              --dir .release/upstream
+          done
+
+          echo '--- Upstream assets ---'
+          ls -lh .release/upstream
+
+      - name: Build installable Blender ZIPs
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 scripts/package_blender_release.py \
+            --source QRemeshify \
+            --upstream-dir .release/upstream \
+            --version "$VERSION" \
+            --output-dir dist
+
+          echo '--- Release assets ---'
+          ls -lh dist
+
+      - name: Create GitHub Release and upload Blender ZIPs
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
+          set -euo pipefail
           prerelease_args=()
 
           # alpha/beta/rc/pre/preview tags become GitHub prereleases automatically.
@@ -51,7 +111,8 @@ jobs:
           fi
 
           gh release create "$RELEASE_TAG" \
+            dist/*.zip \
             --verify-tag \
-            --title "$RELEASE_TAG" \
+            --title "ReQRemeshify $VERSION" \
             --notes-file release-notes.md \
             "${prerelease_args[@]}"
