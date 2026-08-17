@@ -1,6 +1,9 @@
-# ReQRemeshify / QRemeshify 1.2.0
+# ReQRemeshify / QRemeshify 1.2.1
 
 A Blender quad-remeshing add-on based on **QuadWild with Bi-MDF solver**, forked from QRemeshify and updated for cleaner topology flow and Blender 4.x.
+
+**Main repository:** https://github.com/ksami/QRemeshify
+**Fork repository:** https://github.com/TamKungZ/ReQRemeshify
 
 Based on:
 - https://github.com/ksami/QRemeshify

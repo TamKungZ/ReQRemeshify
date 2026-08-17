@@ -4,10 +4,10 @@ id = "qremeshify"
 version = "1.2.1"
 name = "QRemeshify"
 tagline = "Quad remesher with symmetry and cleaner edge flow"
-maintainer = "ksami; ReQRemeshify fork maintainers"
+maintainer = "TamKungZ_"
 type = "add-on"
 
-website = "https://github.com/ksami/QRemeshify"
+website = "https://github.com/TamKungZ/ReQRemeshify"
 tags = ["Mesh"]
 
 # Blender's Extension system starts at 4.2, so the extension manifest must use

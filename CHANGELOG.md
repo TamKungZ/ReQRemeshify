@@ -2,6 +2,7 @@
 
 ## 1.2.1 - Pointed tip topology
 
+- Updated Blender add-on/extension metadata and support links to the TamKungZ_ fork repository.
 - Added **Pointed Tip Cleanup** for fingertips, horns, spikes, and other strongly tapered ends.
 - Strongly convex terminal 3/4-sided caps are converted into **one center pole** with the surrounding ring left intact, producing a radial fan instead of several pinched/skewed quads fighting at the tip.
 - Tip detection is intentionally conservative and requires a strong bend around the cap to avoid collapsing ordinary curved surfaces.

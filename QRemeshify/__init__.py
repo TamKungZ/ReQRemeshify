@@ -1,11 +1,13 @@
 bl_info = {
     "name": "QRemeshify",
     "description": "Quad remesher with symmetry and flow cleanup",
-    "author": "ksami; ReQRemeshify fork improvements",
+    "author": "ksami; TamKungZ_ (ReQRemeshify fork)",
     "version": (1, 2, 1),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > QRemeshify",
     "category": "Mesh",
+    "doc_url": "https://github.com/TamKungZ/ReQRemeshify",
+    "tracker_url": "https://github.com/TamKungZ/ReQRemeshify/issues",
 }
 
 import bpy
