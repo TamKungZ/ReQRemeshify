@@ -1,91 +1,106 @@
-# QRemeshify
-{ [Download](https://ksami.gumroad.com/l/QRemeshify) | [Forums](https://github.com/ksami/QRemeshify/discussions) | [Issues](https://github.com/ksami/QRemeshify/issues) }
+# ReQRemeshify / QRemeshify 1.2.0
 
-A Blender extension for an easy-to-use remesher that outputs good-quality quad topology
+A Blender quad-remeshing add-on based on **QuadWild with Bi-MDF solver**, forked from QRemeshify and updated for cleaner topology flow and Blender 4.x.
 
-Based on [QuadWild with Bi-MDF solver](https://github.com/cgg-bern/quadwild-bimdf) which is based on [QuadWild](https://github.com/nicopietroni/quadwild)
+Based on:
+- https://github.com/ksami/QRemeshify
+- https://github.com/cgg-bern/quadwild-bimdf
+- https://github.com/nicopietroni/quadwild
 
-# Features
-- Good-quality quad topology even with basic usage
-- Supports symmetry
-- Guide edge flow with edges marked seams/sharp/material boundary/face set boundary
-- Options for advanced fine-tuning available
-- No external programs to download or run
+## What changed in this fork
 
-# Example
-[Suzanne 3D Model](/example/suzanne-quadwild-bimdf.stl)  
-[![Suzanne Before/After](/images/suzanne-resized.png)](/images/suzanne.png)
+### Cleaner / less tilted edge flow
 
-Model from Elizaveta  
-[![Women's outfit by Elizaveta](/images/outfit-resized.png)](/images/outfit.png)
+The fork fixes a feature-indexing bug in the old export pipeline: after BMesh triangulation, face indices could be stale while `.sharp` features were exported using those indices. That could attach a requested sharp feature to the wrong exported triangle and distort QuadWild's field direction.
 
-Model from Wildreamz  
-[![Cute cat by Wildreamz](/images/cat-resized.png)](/images/cat.png)
+It also adds **Straighten Flow**, a conservative post-process that:
 
-## Try it
-[![suzanne-nopreprocess-sharp25](/images/suzanne-settings-resized.png)](/images/suzanne-settings.png)
-1. *Add > Mesh > Monkey*
-2. Add subdivision modifier with 2 levels
-3. Add triangulate modifier
-4. Open QRemeshify panel, disable Preprocess, set sharp angle threshold to 25, enable symmetry in X-axis
+- only relaxes regular valence-4 quad-grid vertices;
+- keeps boundaries, singularities, non-quad regions and sharp regions fixed;
+- moves vertices tangentially rather than doing ordinary shrink-heavy smoothing;
+- reprojects the result to the original evaluated surface with a BVH.
 
-# Requirements
-- Blender 4.2 and above
-- Windows (still testing Linux and macOS)
+Default settings are intentionally mild:
 
-# Installation
-1. Download the zip file according to your OS from [Gumroad](https://ksami.gumroad.com/l/QRemeshify) or from [Releases](https://github.com/ksami/QRemeshify/releases)
-2. For Blender 4.2 and above, go to *Edit > Preferences > Addons* and click the arrow pointing down on the top right
-3. Click on *Install from Disk...* and select the downloaded zip file
-4. Ensure the checkbox is ticked to enable QRemeshify
+- Strength: `0.35`
+- Passes: `4`
 
-# Usage
-QRemeshify can be accessed from the 3D view N-Panel (Press `N` in 3D view) while in Object mode
+For hard-surface meshes, try `0.45-0.60` and `4-8` passes. For organic/high-detail surfaces, start around `0.20-0.35`.
 
-Please remember to save often, time taken for remeshing is dependent on many factors and may take an unexpectedly long time
+### Equal Left / Right
 
-# Settings
-| Option | Description | Performance Impact |
-| --- | --- | --- |
-| Preprocess | Runs QuadWild's built-in decimation, triangulation, and attempt to fix common geometry issues | High |
-| Smoothing | Smooths topology after quadrangulation | High |
-| Detect Sharp | Generates sharp features from edges above the threshold, from edges marked sharp, and edges marked seam | Low |
-| Symmetry | Produce symmetrical topology along specified axes | Shortens time taken since less geometry is processed |
+There is now a prominent **Equal Left / Right** checkbox. It enables exact local-X bilateral symmetry with one click.
 
-## Advanced Settings
-| Option | Description | Performance Impact |
-| --- | --- | --- |
-| Debug Mode | Shows meshes produced by intermediate steps | Low |
-| Use Cache | Run pipeline from quadrangulation step onwards (see [Pipeline](#pipeline)) (__MUST__ run full pipeline once before) | Shortens time taken since less steps run |
+The symmetry pipeline was also changed to:
 
-Other than `Debug Mode` and `Use Cache`, advanced settings are passed straight through to the underlying [QuadWild Bi-MDF](https://github.com/cgg-bern/quadwild-bimdf) and [QuadWild](https://github.com/nicopietroni/quadwild) library and are either undocumented or too complex for me to understand. They are still made available here for experimentation and fine-tuning.
+- use a scale-aware bisect tolerance instead of a fixed `0.0001`;
+- snap the center seam exactly to `0`;
+- keep symmetry axes object-local on rotated objects;
+- enable Mirror clipping + merge with a very small scale-aware threshold.
 
-# Tips
-Find and share more tips at [Discussions](https://github.com/ksami/QRemeshify/discussions/categories/tips-and-tricks)
-- Slower for more complex shapes eg. lots of cloth folds, try separating into smaller, simpler parts
-- Having an even distribution of tris seems faster, either manually decimate and triangulate or enable Preprocess to help with this
-- Time taken is proportional to number of faces, decimate to <100k tris would be a good start
-- Needs sufficient geometry to work with to get a good topology, roughly >1k tris
-- Loose geometry may need to be separated into individual objects, *Edit mode > P > Separate by loose*
-- Use edges marked as sharp or UV seams to influence edge flow
-- Use cache to only run quadrangulate step if previous steps have been run once before, for speeding up while tweaking advanced settings
+The original X/Y/Z symmetry controls remain available for additional axes.
 
-# Pipeline
-```mermaid
-flowchart TD
-    Start --> B{Use cache?}
-    B -->|False| C[Cut mesh in half on specified axes for symmetry]
-    C -.-> D([mesh.obj])
-    D --> E[Calculate sharp features]
-    E --> G[[QuadWild built-in preprocessing and field calculation]]
-    D --> G
-    G -.-> H([mesh_rem.obj])
-    H --> I[[QuadWild field tracing and splitting into patches]]
-    I -.-> J([mesh_rem_p0.obj])
+### Better remesh preprocessing
 
-    J --> K[[QuadWild quadrangulation and smoothing]]
-    B -->|True| K
+- BMesh vertex/edge/face indices are refreshed before OBJ and `.sharp` export.
+- Sharp-edge face/edge references now follow exported face-loop order.
+- Triangulation uses Blender's `BEAUTY` method instead of always preferring the shortest diagonal, reducing directional bias before field generation.
 
-    K -.-> L([mesh_rem_p0_0_quadrangulation.obj, mesh_rem_p0_0_quadrangulation_smooth.obj])
-    L --> M[Add mirror modifier on specified axes for symmetry]
-```
+## Blender compatibility
+
+- **Blender 4.0+**: supported by the Python add-on (`bl_info`). Install as a normal/legacy add-on on Blender 4.0 and 4.1.
+- **Blender 4.2+**: can also be packaged/installed as a Blender Extension using the included `blender_manifest.toml`.
+
+The Extension manifest remains `blender_version_min = "4.2.0"` because Blender's Extension format itself requires 4.2 or newer.
+
+## Native QuadWild libraries
+
+This repository/archive must contain the platform-native QuadWild binaries in `QRemeshify/lib/`:
+
+- Windows: `lib_quadwild.dll`, `lib_quadpatches.dll`
+- Linux: `liblib_quadwild.so`, `liblib_quadpatches.so`
+- macOS: `liblib_quadwild.dylib`, `liblib_quadpatches.dylib`
+
+The uploaded fork source did **not** contain these binaries, so this source ZIP cannot execute QuadWild until the corresponding compiled libraries are added. The add-on now reports this clearly instead of failing with a raw `ctypes` loader error.
+
+## Installation
+
+### Blender 4.0 / 4.1
+
+Install the ZIP as a normal add-on from Blender Preferences, then enable **QRemeshify**.
+
+### Blender 4.2+
+
+You may install the add-on normally, or build/install it as a Blender Extension using the included manifest.
+
+## Basic usage
+
+1. Select one mesh object. If multiple objects are selected, the active object is used.
+2. Open **3D View > N Panel > QRemeshify**.
+3. Set **Density**.
+4. Keep **Straighten Flow** enabled if you want cleaner, less wavy/tilted quad rows.
+5. Enable **Equal Left / Right** for exact bilateral X symmetry.
+6. Use **Extra Symmetry** if Y/Z symmetry is also needed.
+7. Click **Remesh**.
+
+## Main settings
+
+| Setting | Purpose |
+| --- | --- |
+| Preprocess | QuadWild preprocessing before field tracing |
+| Smoothing | QuadWild's final smoothing |
+| Straighten Flow | Regularizes unnecessary skew after quadrangulation and reprojects to the source surface |
+| Sharp Detect | Uses angle, marked sharp, seams, material boundaries and sculpt face-set boundaries as flow guides |
+| Equal Left / Right | One-click exact local-X bilateral symmetry |
+| Extra Symmetry X/Y/Z | Additional symmetry axes |
+| Density | Quad size / detail control |
+
+## Notes
+
+- Save the `.blend` before a heavy remesh.
+- Keep object origin centered on the intended symmetry plane.
+- If Straighten Flow removes too much character from an organic surface, lower its Strength or Passes.
+- Sharp/seam edges are still the best way to intentionally guide edge flow.
+- `Use Cache` still assumes the source geometry and intermediate QuadWild files are unchanged.
+
+See `CHANGELOG.md` for the 1.2.0 changes.

@@ -45,8 +45,19 @@ class Quadwild():
         quadwild_lib_path = path.join(path.dirname(path.abspath(__file__)), quadwild_lib_filename)
         quadpatches_lib_path = path.join(path.dirname(path.abspath(__file__)), quadpatches_lib_filename)
 
-        self.quadwild = cdll.LoadLibrary(quadwild_lib_path)
-        self.quadpatches = cdll.LoadLibrary(quadpatches_lib_path)
+        missing = [lib_path for lib_path in (quadwild_lib_path, quadpatches_lib_path) if not path.isfile(lib_path)]
+        if missing:
+            missing_names = ", ".join(path.basename(lib_path) for lib_path in missing)
+            raise QWException(
+                f"Missing native QuadWild libraries for {system}: {missing_names}. "
+                "Build or copy the platform binaries into QRemeshify/lib/."
+            )
+
+        try:
+            self.quadwild = cdll.LoadLibrary(quadwild_lib_path)
+            self.quadpatches = cdll.LoadLibrary(quadpatches_lib_path)
+        except OSError as exc:
+            raise QWException(f"Could not load QuadWild native libraries: {exc}") from exc
 
         self.quadwild.remeshAndField2.argtypes = [POINTER(Parameters), c_char_p, c_char_p, c_char_p]
         self.quadwild.remeshAndField2.restype = None
