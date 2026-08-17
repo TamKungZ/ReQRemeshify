@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '[0-9]*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tagged revision
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Extract matching changelog section
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 scripts/extract_changelog.py \
+            "$RELEASE_TAG" \
+            CHANGELOG.md \
+            release-notes.md
+
+          echo '--- Release notes ---'
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          prerelease_args=()
+
+          # alpha/beta/rc/pre/preview tags become GitHub prereleases automatically.
+          if [[ "$RELEASE_TAG" =~ -(alpha|beta|rc|pre|preview)([.-]?[0-9]+)?$ ]]; then
+            prerelease_args+=(--prerelease)
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            --verify-tag \
+            --title "$RELEASE_TAG" \
+            --notes-file release-notes.md \
+            "${prerelease_args[@]}"
