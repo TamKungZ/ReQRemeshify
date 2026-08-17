@@ -25,6 +25,7 @@ class QREMESH_PT_UIPanel(BasePanel, Panel):
         col.prop(props, "enableRemesh")
         col.prop(props, "enableSmoothing")
         col.prop(props, "enableFlowCleanup")
+        col.prop(props, "enableTipCleanup")
 
         if props.enableFlowCleanup:
             box = layout.box()
@@ -77,6 +78,9 @@ class QREMESH_PT_UIAdvancedPanel(BasePanel, Panel):
         col = layout.column()
         col.prop(props, "debug")
         col.prop(props, "useCache")
+
+        if props.enableTipCleanup:
+            col.prop(props, "tipCleanupAngle")
 
         layout.separator(type="LINE")
 

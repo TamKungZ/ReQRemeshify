@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "qremeshify"
-version = "1.2.0"
+version = "1.2.1"
 name = "QRemeshify"
 tagline = "Quad remesher with symmetry and cleaner edge flow"
 maintainer = "ksami; ReQRemeshify fork maintainers"

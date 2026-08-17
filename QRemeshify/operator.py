@@ -87,7 +87,7 @@ class QREMESH_OT_Remesh(bpy.types.Operator):
 
             # We need the evaluated source mesh for the normal pipeline, and also
             # for Straighten Flow reprojection when quadrangulation cache is used.
-            if not props.useCache or props.enableFlowCleanup:
+            if not props.useCache or props.enableFlowCleanup or props.enableTipCleanup:
                 depsgraph = ctx.evaluated_depsgraph_get()
                 evaluated_obj = obj.evaluated_get(depsgraph)
                 evaluated_mesh = evaluated_obj.to_mesh()
@@ -208,6 +208,14 @@ class QREMESH_OT_Remesh(bpy.types.Operator):
                     sharp_angle=props.sharpAngle,
                 )
                 self.report({"DEBUG"}, f"Straighten Flow adjusted {updates} vertex steps")
+
+            if props.enableTipCleanup:
+                tips = cleanup.cleanup_pointed_tips(
+                    final_mesh,
+                    surface_bvh,
+                    angle=props.tipCleanupAngle,
+                )
+                self.report({"DEBUG"}, f"Pointed Tip Cleanup converted {tips} terminal caps")
 
             final_obj = bpy.data.objects.new(f"{obj.name} Remeshed", final_mesh)
             ctx.collection.objects.link(final_obj)

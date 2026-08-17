@@ -2,7 +2,7 @@ bl_info = {
     "name": "QRemeshify",
     "description": "Quad remesher with symmetry and flow cleanup",
     "author": "ksami; ReQRemeshify fork improvements",
-    "version": (1, 2, 0),
+    "version": (1, 2, 1),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > QRemeshify",
     "category": "Mesh",

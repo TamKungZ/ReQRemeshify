@@ -51,6 +51,22 @@ class QWPropertyGroup(PropertyGroup):
         max=20,
         default=4,
     )
+    enableTipCleanup: BoolProperty(
+        name="Pointed Tip Cleanup",
+        description=(
+            "Replace strongly pinched terminal caps such as fingertips, horns and spikes "
+            "with one center pole and a clean radial first ring"
+        ),
+        default=True,
+    )
+    tipCleanupAngle: FloatProperty(
+        name="Tip Detection Angle",
+        description="Minimum bend around a terminal cap before it is converted to a center pole",
+        min=15.0,
+        max=85.0,
+        default=48.0,
+        precision=1,
+    )
     enableSharp: BoolProperty(
         name="Sharp Detection",
         description="Detect sharp features from marked sharp edges, seams, material boundaries, face sets, and angle threshold",
